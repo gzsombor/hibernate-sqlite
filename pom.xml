@@ -4,15 +4,15 @@
   <groupId>com.applerao</groupId>
   <artifactId>hibernatesqlite</artifactId>
   <packaging>jar</packaging>
-  <version>1.0</version>
+  <version>1.0-4.2.7.Final</version>
   <name>hibernatesqlite</name>
   <url>https://hibernate-sqlite.googlecode.com/svn/trunk/mavenrepo</url>
   <dependencies>
         <!-- hiernate jars -->
         <dependency>
             <groupId>org.hibernate</groupId>
-            <artifactId>hibernate</artifactId>
-            <version>3.2.6.ga</version>
+            <artifactId>hibernate-core</artifactId>
+            <version>4.2.7.Final</version>
         </dependency>
   </dependencies>
   <build>
