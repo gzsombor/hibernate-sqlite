@@ -6,7 +6,7 @@
   <packaging>jar</packaging>
   <version>1.0-4.2.7.Final</version>
   <name>hibernatesqlite</name>
-  <url>https://hibernate-sqlite.googlecode.com/svn/trunk/mavenrepo</url>
+  <url>https://hibernate-sqlite.googlecode.com</url>
   <dependencies>
         <!-- hiernate jars -->
         <dependency>
@@ -18,4 +18,5 @@
   <build>
     <finalName>hibernatesqlite</finalName>
   </build>
+  <description>Improved version of hibernatesqlite based on the version found at https://hibernate-sqlite.googlecode.com</description>
 </project>

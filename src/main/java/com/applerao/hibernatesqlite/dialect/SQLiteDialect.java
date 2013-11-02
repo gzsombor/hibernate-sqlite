@@ -9,17 +9,58 @@ package com.applerao.hibernatesqlite.dialect;
  * May you share freely, never taking more than you give.
  *
  */
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.sql.Types;
 
-import org.hibernate.Hibernate;
 import org.hibernate.dialect.Dialect;
 import org.hibernate.dialect.function.SQLFunctionTemplate;
 import org.hibernate.dialect.function.StandardSQLFunction;
 import org.hibernate.dialect.function.VarArgsSQLFunction;
 import org.hibernate.type.IntegerType;
 import org.hibernate.type.StringType;
+import org.hibernate.type.descriptor.ValueExtractor;
+import org.hibernate.type.descriptor.WrapperOptions;
+import org.hibernate.type.descriptor.java.JavaTypeDescriptor;
+import org.hibernate.type.descriptor.sql.BasicExtractor;
+import org.hibernate.type.descriptor.sql.SqlTypeDescriptor;
+import org.hibernate.type.descriptor.sql.TimestampTypeDescriptor;
 
 public class SQLiteDialect extends Dialect {
+
+    private final TimestampTypeDescriptor timestampDescriptor = new TimestampTypeDescriptor() {
+
+        /**
+		 * 
+		 */
+        private static final long serialVersionUID = 1L;
+
+        @Override
+        public <X> ValueExtractor<X> getExtractor(final JavaTypeDescriptor<X> javaTypeDescriptor) {
+            return new BasicExtractor<X>(javaTypeDescriptor, this) {
+                @Override
+                protected X doExtract(ResultSet rs, String name, WrapperOptions options) throws SQLException {
+                    Timestamp timestamp = null;
+                    try {
+                        timestamp = rs.getTimestamp(name);
+                    } catch (final SQLException e) {
+                        // it's wrong, I know.
+                        final String plainText = rs.getString(name);
+                        // try parsing as '2013-10-29 23:35:32.269159+00:00'
+                        final int plus = plainText.indexOf('+');
+                        if (plus >= 0) {
+                            timestamp = Timestamp.valueOf(plainText.substring(0, plus));
+                        } else {
+                            throw e;
+                        }
+                    }
+                    return javaTypeDescriptor.wrap(timestamp, options);
+                }
+            };
+        }
+    };
+
     public SQLiteDialect() {
         super();
         registerColumnType(Types.BIT, "integer");
@@ -52,117 +93,142 @@ public class SQLiteDialect extends Dialect {
         registerFunction("substring", new StandardSQLFunction("substr", StringType.INSTANCE));
     }
 
+    @Override
     public boolean supportsIdentityColumns() {
         return true;
     }
 
     /*
-     public boolean supportsInsertSelectIdentity() {
-     return true; // As specify in NHibernate dialect
-     }
+     * public boolean supportsInsertSelectIdentity() { return true; // As
+     * specify in NHibernate dialect }
      */
 
+    @Override
     public boolean hasDataTypeInIdentityColumn() {
         return false; // As specify in NHibernate dialect
     }
 
     /*
-     public String appendIdentitySelectToInsert(String insertString) {
-     return new StringBuffer(insertString.length()+30). // As specify in NHibernate dialect
-     append(insertString).
-     append("; ").append(getIdentitySelectString()).
-     toString();
-     }
+     * public String appendIdentitySelectToInsert(String insertString) { return
+     * new StringBuffer(insertString.length()+30). // As specify in NHibernate
+     * dialect append(insertString).
+     * append("; ").append(getIdentitySelectString()). toString(); }
      */
 
+    @Override
     public String getIdentityColumnString() {
         // return "integer primary key autoincrement";
         return "integer";
     }
 
+    @Override
     public String getIdentitySelectString() {
         return "select last_insert_rowid()";
     }
 
+    @Override
     public boolean supportsLimit() {
         return true;
     }
 
+    @Override
     public String getLimitString(String query, boolean hasOffset) {
-        return new StringBuffer(query.length() + 20).append(query)
-            .append(hasOffset ? " limit ? offset ?" : " limit ?").toString();
+        return new StringBuffer(query.length() + 20).append(query).append(hasOffset ? " limit ? offset ?" : " limit ?").toString();
     }
 
+    @Override
     public boolean supportsTemporaryTables() {
         return true;
     }
 
+    @Override
     public String getCreateTemporaryTableString() {
         return "create temporary table if not exists";
     }
 
+    @Override
     public boolean dropTemporaryTableAfterUse() {
         return false;
     }
 
+    @Override
     public boolean supportsCurrentTimestampSelection() {
         return true;
     }
 
+    @Override
     public boolean isCurrentTimestampSelectStringCallable() {
         return false;
     }
 
+    @Override
     public String getCurrentTimestampSelectString() {
         return "select current_timestamp";
     }
 
+    @Override
     public boolean supportsUnionAll() {
         return true;
     }
 
+    @Override
     public boolean hasAlterTable() {
         return false; // As specify in NHibernate dialect
     }
 
+    @Override
     public boolean dropConstraints() {
         return false;
     }
 
+    @Override
     public String getAddColumnString() {
         return "add column";
     }
 
+    @Override
     public String getForUpdateString() {
         return "";
     }
 
+    @Override
     public boolean supportsOuterJoinForUpdate() {
         return false;
     }
 
+    @Override
     public String getDropForeignKeyString() {
-        throw new UnsupportedOperationException(
-            "No drop foreign key syntax supported by SQLiteDialect");
+        throw new UnsupportedOperationException("No drop foreign key syntax supported by SQLiteDialect");
     }
 
-    public String getAddForeignKeyConstraintString(String constraintName, String[] foreignKey,
-                                                   String referencedTable, String[] primaryKey,
-                                                   boolean referencesPrimaryKey) {
-        throw new UnsupportedOperationException(
-            "No add foreign key syntax supported by SQLiteDialect");
+    @Override
+    public String getAddForeignKeyConstraintString(String constraintName, String[] foreignKey, String referencedTable, String[] primaryKey,
+            boolean referencesPrimaryKey) {
+        throw new UnsupportedOperationException("No add foreign key syntax supported by SQLiteDialect");
     }
 
+    @Override
     public String getAddPrimaryKeyConstraintString(String constraintName) {
-        throw new UnsupportedOperationException(
-            "No add primary key syntax supported by SQLiteDialect");
+        throw new UnsupportedOperationException("No add primary key syntax supported by SQLiteDialect");
     }
 
+    @Override
     public boolean supportsIfExistsBeforeTableName() {
         return true;
     }
 
+    @Override
     public boolean supportsCascadeDelete() {
         return false;
+    }
+
+    @Override
+    protected SqlTypeDescriptor getSqlTypeDescriptorOverride(int sqlCode) {
+        switch (sqlCode) {
+            case Types.TIMESTAMP:
+                return timestampDescriptor;
+            default:
+                return super.getSqlTypeDescriptorOverride(sqlCode);
+        }
     }
 }
